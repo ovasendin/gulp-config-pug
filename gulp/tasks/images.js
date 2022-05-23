@@ -8,7 +8,7 @@ import gulpif from 'gulp-if';
 import rename from 'gulp-rename';
 import config from '../config';
 
-const srcPath = `${config.src.images}/**/*.{jpg,jpeg,png,ico,svg,webp}`;
+const srcPath = `${config.src.images}/**/*.{jpg,jpeg,png,webp}`;
 
 const copyImages = () =>
   gulp
@@ -18,7 +18,6 @@ const copyImages = () =>
       imagemin([
         imagemin.mozjpeg({ quality: 60 }),
         imageminPngquant({ quality: [0.6, 0.8] }),
-        imagemin.svgo(),
       ]),
     )
     .pipe(gulp.dest(config.dest.images));
