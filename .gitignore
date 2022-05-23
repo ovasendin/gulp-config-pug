@@ -1,0 +1,11 @@
+node_modules
+backup
+build
+dist
+.vscode
+*.min.*
+
+#
+__MACOSX
+.DS_store
+Thumbs.db
