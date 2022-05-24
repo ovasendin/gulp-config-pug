@@ -1,5 +1,5 @@
 import gulp from 'gulp';
-import { cleanImages } from './clean';
+import fs from 'fs';
 import changed from 'gulp-changed';
 import imagemin from 'gulp-imagemin';
 import imageminPngquant from 'imagemin-pngquant';
@@ -23,9 +23,8 @@ const copyImages = () =>
 
 const convertImagesToWebp = () =>
   gulp
-    // может можно передать конкретный файл для сжатия
     .src(`${config.src.images}/**/*.{jpg,jpeg,png}`)
-    .pipe(changed(config.dest.images, { extension: '.webp' }))
+    .pipe(changed(`${config.dest.images}/webp`, { extension: '.webp' }))
     .pipe(imagemin([imageminWebp({ quality: 80 })]))
     .pipe(
       rename({
@@ -33,6 +32,17 @@ const convertImagesToWebp = () =>
       }),
     )
     .pipe(gulp.dest(`${config.dest.images}/webp`));
+
+const replacePath = (path, webp) => {
+  if (webp === 'webp')
+    return (
+      path
+        .replace('app', 'build')
+        .replace('assets\\images', 'images\\webp')
+        .substr(0, path.lastIndexOf('.')) + '.webp'
+    );
+  else return path.replace('app', 'build').replace('assets\\', '');
+};
 
 export const imagesBuild = gulp.series(copyImages, convertImagesToWebp);
 
@@ -43,11 +53,11 @@ export const imagesWatch = () =>
     .on('add', function (path, stats) {
       imagesBuild();
     })
-    .on('change', function (path, stats) {
-      cleanImages();
+    .on('unlink', function (path, stats) {
+      fs.unlinkSync(replacePath(path));
+      fs.unlinkSync(replacePath(path, 'webp'));
       imagesBuild();
     })
-    .on('unlink', function (path, stats) {
-      cleanImages();
+    .on('change', function (path, stats) {
       imagesBuild();
     });
