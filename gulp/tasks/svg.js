@@ -1,23 +1,27 @@
 import gulp from 'gulp';
-import { cleanSVG } from './clean';
+import fs from 'fs';
+import debug from 'gulp-debug';
 import changed from 'gulp-changed';
 import svgSprite from 'gulp-svg-sprite';
 import imagemin from 'gulp-imagemin';
 import config from '../config';
 
-const srcPath = `${config.src.svg}/**/*.svg`;
+const watchPath = [`${config.src.svg}/**/*.svg`, '!sprite.svg'];
 
-const copyImages = () =>
+const copyAllImages = () =>
   gulp
-    .src(srcPath)
+    .src(watchPath)
     .pipe(changed(config.dest.svg))
+    .pipe(debug({ title: 'svg:' }))
     .pipe(imagemin([imagemin.svgo()]))
     .pipe(gulp.dest(config.dest.svg));
 
 const generateSprite = () =>
+  // возникает ошибка, если папка svg становится пустая (после copyImage нет файла для generateSprite)
+  // при удалении любого файла может возникать ошибка, потому что cleanSVG удаляет файл sprite.svg
   gulp
     // svg берутся из папки dest
-    .src(`${config.dest.svg}/**/*.svg`)
+    .src([`${config.dest.svg}/**/*.svg`, '!sprite.svg'])
     .pipe(
       svgSprite({
         mode: {
@@ -27,22 +31,27 @@ const generateSprite = () =>
         },
       }),
     )
-    .pipe(gulp.dest(config.dest.images));
+    .pipe(gulp.dest(config.dest.svg));
 
-export const svgBuild = gulp.series(copyImages, generateSprite);
+const replacePath = (path) => {
+  return path.replace('app', 'build').replace('assets\\', '');
+};
 
-const watcher = gulp.watch(srcPath, { ignoreInitial: false });
+export const svgBuild = gulp.series(copyAllImages, generateSprite);
+
+export const svgSmartBuild = gulp.series(generateSprite);
+
+const watcher = gulp.watch(watchPath, { ignoreInitial: false });
 
 export const svgWatch = () =>
   watcher
-    .on('add', function (path, stats) {
+    .on('add', function () {
       svgBuild();
     })
-    .on('change', function (path, stats) {
-      cleanSVG();
-      svgBuild();
+    .on('unlink', function (path) {
+      fs.unlinkSync(replacePath(path));
+      svgSmartBuild();
     })
-    .on('unlink', function (path, stats) {
-      cleanSVG();
-      svgBuild();
+    .on('change', function () {
+      svgSmartBuild();
     });

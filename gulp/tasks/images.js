@@ -4,15 +4,14 @@ import changed from 'gulp-changed';
 import imagemin from 'gulp-imagemin';
 import imageminPngquant from 'imagemin-pngquant';
 import imageminWebp from 'imagemin-webp';
-import gulpif from 'gulp-if';
 import rename from 'gulp-rename';
 import config from '../config';
 
-const srcPath = `${config.src.images}/**/*.{jpg,jpeg,png,webp}`;
+const watchPath = `${config.src.images}/**/*.{jpg,jpeg,png,webp}`;
 
 const copyImages = () =>
   gulp
-    .src(srcPath)
+    .src(watchPath)
     .pipe(changed(config.dest.images))
     .pipe(
       imagemin([
@@ -24,6 +23,7 @@ const copyImages = () =>
 
 const convertImagesToWebp = () =>
   gulp
+    // может можно передать конкретный файл для сжатия
     .src(`${config.src.images}/**/*.{jpg,jpeg,png}`)
     .pipe(changed(config.dest.images, { extension: '.webp' }))
     .pipe(imagemin([imageminWebp({ quality: 80 })]))
@@ -32,11 +32,11 @@ const convertImagesToWebp = () =>
         extname: '.webp',
       }),
     )
-    .pipe(gulp.dest(config.dest.images));
+    .pipe(gulp.dest(`${config.dest.images}/webp`));
 
 export const imagesBuild = gulp.series(copyImages, convertImagesToWebp);
 
-const watcher = gulp.watch(srcPath, { ignoreInitial: false });
+const watcher = gulp.watch(watchPath, { ignoreInitial: false });
 
 export const imagesWatch = () =>
   watcher
